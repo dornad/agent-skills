@@ -13,7 +13,7 @@ Agents write code faster than people can read it. The reviewer's attention is th
 
 ## When this applies
 
-1. **While planning.** Estimate how many files the change will touch. If it's over the budget, plan the split before writing code. Splitting before is cheap; splitting after means rebuilding commits.
+1. **While planning.** Estimate how many files the change will touch and roughly how many lines it will change. If either is over the budget, plan the split before writing code. Splitting before is cheap; splitting after means rebuilding commits.
 2. **Before committing and before opening or updating a PR.** Check the rules below and the checklist at the end.
 
 If the project's own instructions (`AGENTS.md`, `CLAUDE.md` or similar) set a different budget or template, follow the project.
@@ -22,7 +22,34 @@ If the project's own instructions (`AGENTS.md`, `CLAUDE.md` or similar) set a di
 
 ### 1. Small enough to review in one sitting
 
-The default budget is **10 files per PR**, not counting generated files: lockfiles, asset catalog JSON, snapshots, generated code. Over budget means split (see "Splitting" below).
+Aim for **150 changed lines or fewer** (added plus deleted). That is the target, not a limit.
+
+The default budget has two hard limits, and a PR must fit both:
+
+- **400 changed lines.** This is the main limit: reviewers stop finding problems long before they stop scrolling.
+- **10 files.** This catches a change that is short but scattered.
+
+None of these numbers count generated files: lockfiles, asset catalog JSON, snapshots, generated code. Measure with `git diff --shortstat <base>...HEAD`.
+
+What to do with the result:
+
+- **Over either limit:** split (see "Splitting" below), then measure each part again.
+- **Within both limits but over the target:** split if the change divides cleanly into two ideas. If it is one idea, publish it as it is.
+- **Purely mechanical PR (rule 3):** the limits don't apply, because the reviewer skims it.
+
+```mermaid
+flowchart TD
+  A[Measure changed lines and files,<br/>not counting generated files] --> B{Purely mechanical?}
+  B -- Yes --> C[Publish as its own PR,<br/>labeled mechanical]
+  B -- No --> D{Over 400 lines<br/>or over 10 files?}
+  D -- Yes --> E[Split by idea]
+  E --> A
+  D -- No --> F{Over 150 lines?}
+  F -- No --> G[Publish]
+  F -- Yes --> H{Divides cleanly<br/>into two ideas?}
+  H -- Yes --> E
+  H -- No --> G
+```
 
 ### 2. One idea per PR
 
@@ -104,7 +131,8 @@ sequenceDiagram
 
 ## Checklist before publishing
 
-- [ ] Files changed are within the budget, not counting generated files. If not, split.
+- [ ] Changed lines and files changed are both within the limits, not counting generated files. If not, split.
+- [ ] If the PR is over the 150-line target, it is one idea that doesn't divide cleanly.
 - [ ] The PR does one thing. Drive-by changes and product decisions are out.
 - [ ] Mechanical changes are separate and labeled.
 - [ ] Every section of the description is filled in, including "Not done or not verified".
